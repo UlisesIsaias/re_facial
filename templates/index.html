@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Detección de Puntos Faciales </title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        img {
+            max-width: 100%;
+            height: auto;
+            width: 500px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.5);
+        }
+        .image-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>.: Detección de Puntos Faciales :.</h1>
+    </div>
+    
+    <div class="container mt-4">
+        <form method="POST" enctype="multipart/form-data" class="text-center">
+            <div class="form-group">
+                <input type="file" name="image" accept="image/*" required class="form-control-file">
+            </div>
+            <button type="submit" class="btn btn-primary">Subir Imagen</button>
+        </form>
+
+        {% if img_data %}
+            <div class="image-container mt-4">
+                <h2>Imagen Procesada:</h2>
+                <img src="data:image/jpeg;base64,{{ img_data }}" alt="Imagen Procesada">
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
