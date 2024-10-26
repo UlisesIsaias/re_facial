@@ -4,8 +4,23 @@ import numpy as np
 import dlib
 import os
 import base64
+import requests
 
 app = Flask(__name__)
+
+def download_model():
+    model_path = 'shape_predictor_68_face_landmarks.dat'
+    if not os.path.exists(model_path):  # Verifica si el archivo ya existe
+        print("Descargando el modelo...")
+        url = "https://drive.google.com/file/d/1PM5qHgEOXRn4shStxYyvOvkuxEWUHH0s/view?usp=sharing"  # Reemplaza esto con tu enlace
+        response = requests.get(url)
+        with open(model_path, "wb") as file:
+            file.write(response.content)
+    else:
+        print("Siiuuuuuu.")
+
+# Llama a la función para descargar el modelo antes de usar el predictor
+download_model()
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
@@ -50,7 +65,7 @@ def index():
             ]
 
             for punto in puntos:
-                size = 2
+                size = 2  # Cambia este valor para aumentar el tamaño de las 'x'
                 cv2.line(image, (punto[0] - size, punto[1] - size), (punto[0] + size, punto[1] + size), (0, 0, 255), 2)
                 cv2.line(image, (punto[0] - size, punto[1] + size), (punto[0] + size, punto[1] - size), (0, 0, 255), 2)
 
@@ -62,6 +77,4 @@ def index():
     return render_template('index.html')
 
 if __name__ == '__main__':
-    import os  # Asegúrate de importar os
-    port = int(os.environ.get('PORT', 5000))  # Usar el puerto proporcionado por Render o 5000 por defecto
-    app.run(host='0.0.0.0', port=port)  # Permitir que la aplicación escuche en todas las interfaces
+    app.run(debug=True)
