@@ -1,55 +1,142 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Detección de Puntos Faciales </title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        img {
-            max-width: 100%;
-            height: auto;
-            width: 500px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            padding: 5px;
-            box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.5);
-        }
-        .image-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .header {
-            background-color: #007bff;
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-        }
-    </style>
+    <title>ANALISIS FACIAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body>
-    <div class="header">
-        <h1>.: Detección de Puntos Faciales :.</h1>
-    </div>
-    
-    <div class="container mt-4">
-        <form method="POST" enctype="multipart/form-data" class="text-center">
-            <div class="form-group">
-                <input type="file" name="image" accept="image/*" required class="form-control-file">
-            </div>
-            <button type="submit" class="btn btn-primary">Subir Imagen</button>
-        </form>
 
-        {% if img_data %}
-            <div class="image-container mt-4">
-                <h2>Imagen Procesada:</h2>
-                <img src="data:image/jpeg;base64,{{ img_data }}" alt="Imagen Procesada">
+<body class="bg-gray-900 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-white">Análisis facial</h1>
+        
+        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
+            <!-- File Upload Section -->
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Sube una imagen para ser analizada</h2>
+                <form id="uploadForm" class="space-y-4">
+                    <!-- Botón de carga de archivo -->
+                    <div class="flex items-center justify-center w-full">
+                        <label class="w-full">
+                            <input type="file" name="file" accept=".jpg,.jpeg,.png" class="hidden" id="fileInput"/>
+                            <button type="button" onclick="document.getElementById('fileInput').click()"
+                                    class="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                                SELECCIONAR IMAGEN
+                            </button>
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                        ANALIZAR IMAGEN
+                    </button>
+                </form>
             </div>
-        {% endif %}
+
+            <!-- Results Section -->
+            <div id="results" class="hidden">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Resultados del análisis</h2>
+                <div class="border border-gray-700 rounded-lg p-4 bg-gray-700">
+                    <img id="resultImage" class="max-w-full h-auto mx-auto" src="" alt="Analysis Result">
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="hidden">
+                <div class="flex items-center justify-center p-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="error" class="hidden mt-4 p-4 bg-red-900 border border-red-700 text-red-200 rounded-lg">
+            </div>
+
+            <!-- Existing Images Section -->
+            {% if images %}
+            <div class="mt-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Imágenes cargadas</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for image in images %}
+                    <div class="relative group">
+                        <img src="{{ url_for('uploaded_file', filename=image) }}" 
+                             alt="{{ image }}" 
+                             class="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-75 transition-opacity"
+                             onclick="analyzeExisting('{{ image }}')">
+                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-gray-200 text-xs p-1 rounded-b-lg truncate">
+                            {{ image }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Manejar la subida de nuevas imágenes
+        $('#uploadForm').submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            showLoading();
+
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    hideLoading();
+                    $('#results').removeClass('hidden');
+                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    $('#error')
+                        .removeClass('hidden')
+                        .text(xhr.responseJSON?.error || 'An error occurred');
+                }
+            });
+        });
+
+        // Manejar el análisis de imágenes existentes
+        function analyzeExisting(filename) {
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('existing_file', filename);
+
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    hideLoading();
+                    $('#results').removeClass('hidden');
+                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    $('#error')
+                        .removeClass('hidden')
+                        .text(xhr.responseJSON?.error || 'An error occurred');
+                }
+            });
+        }
+
+        // Mostrar/ocultar la animación de carga
+        function showLoading() {
+            $('#loading').removeClass('hidden');
+            $('#results, #error').addClass('hidden');
+        }
+
+        function hideLoading() {
+            $('#loading').addClass('hidden');
+        }
+    </script>
 </body>
 </html>
