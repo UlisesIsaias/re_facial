@@ -1,6 +1,7 @@
 import os
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+from urllib.parse import quote as url_quote
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # Set backend before importing pyplot
@@ -42,6 +43,7 @@ def analyze_face(image_path):
 
         # Convert to RGB for MediaPipe
         rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         # Detect facial landmarks
         results = face_mesh.process(rgb_image)
@@ -50,22 +52,22 @@ def analyze_face(image_path):
             raise Exception("No face detected in the image")
 
         # Select 15 main keypoints
-        key_points = [33, 133, 362, 263, 1, 61, 291, 199,
-                     94, 0, 24, 130, 359, 288, 378]
+        key_points = [33, 133, 362, 263, 1, 61, 291, 
+                     94, 0, 24, 130, 359,70,100]
 
-        height, width, _ = image.shape
+        height, width = gray_image.shape
         
         # Create a new figure for each analysis
         plt.clf()
         fig = plt.figure(figsize=(8, 8))
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))  # Show image in color
+        plt.imshow(gray_image, cmap='gray')
 
         # Plot facial landmarks
         for point_idx in key_points:
             landmark = results.multi_face_landmarks[0].landmark[point_idx]
             x = int(landmark.x * width)
             y = int(landmark.y * height)
-            plt.plot(x, y, 'rx')  # Mark points with red crosses
+            plt.plot(x, y, 'rx')
 
         # Save plot to memory
         buf = BytesIO()
