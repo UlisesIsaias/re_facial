@@ -57,3 +57,4 @@ gunicorn==23.0.0
 pyngrok==7.2.0
 gunicorn==23.0.0
 dlib==19.22.0
+mediapipe==0.10.15
