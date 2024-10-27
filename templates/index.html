@@ -4,74 +4,99 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANALISIS FACIAL</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .buttons-container {
+            flex: 1;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            width: 100%;
+        }
+        .image-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        .results-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100%;
+        }
+        .uploaded-images {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+    </style>
 </head>
 
-<body class="bg-gray-900 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <h1 class="text-4xl font-bold text-center mb-8 text-white">Análisis facial</h1>
+<body class="bg-dark text-white">
+    <div class="container my-4">
+        <h1 class="text-center mb-4">Análisis Facial</h1>
         
-        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-xl p-6">
-            <!-- File Upload Section -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Sube una imagen para ser analizada</h2>
+        <div class="buttons-container mb-4">
+            <div class="col-md-4">
+                <h2 class="h5 text-light">Sube una imagen para ser analizada</h2>
                 <form id="uploadForm" class="space-y-4">
-                    <!-- Botón de carga de archivo -->
-                    <div class="flex items-center justify-center w-full">
-                        <label class="w-full">
-                            <input type="file" name="file" accept=".jpg,.jpeg,.png" class="hidden" id="fileInput"/>
-                            <button type="button" onclick="document.getElementById('fileInput').click()"
-                                    class="w-full px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                                SELECCIONAR IMAGEN
-                            </button>
-                        </label>
+                    <div class="form-group">
+                        <label for="fileInput" class="btn btn-primary btn-block">Seleccionar Imagen</label>
+                        <input type="file" name="file" accept=".jpg,.jpeg,.png" class="form-control-file" id="fileInput" style="display: none;"/>
                     </div>
-                    <button type="submit" class="w-full px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                        ANALIZAR IMAGEN
-                    </button>
+                    <button type="submit" class="btn btn-success btn-block">Analizar Imagen</button>
                 </form>
             </div>
+        </div>
 
-            <!-- Results Section -->
-            <div id="results" class="hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Resultados del análisis</h2>
-                <div class="border border-gray-700 rounded-lg p-4 bg-gray-700">
-                    <img id="resultImage" class="max-w-full h-auto mx-auto" src="" alt="Analysis Result">
-                </div>
+        <div class="results-container" id="results" class="hidden">
+            <h2 class="h5">Resultados del Análisis</h2>
+            <div class="border border-light rounded p-2">
+                <img id="resultImage" class="img-fluid" src="" alt="Analysis Result">
             </div>
+        </div>
 
-            <!-- Loading Indicator -->
-            <div id="loading" class="hidden">
-                <div class="flex items-center justify-center p-4">
-                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                </div>
+        <div id="loading" class="hidden">
+            <div class="spinner-border text-info" role="status">
+                <span class="sr-only">Loading...</span>
             </div>
+        </div>
 
-            <!-- Error Display -->
-            <div id="error" class="hidden mt-4 p-4 bg-red-900 border border-red-700 text-red-200 rounded-lg">
-            </div>
+        <div id="error" class="hidden mt-4 alert alert-danger">
+        </div>
 
-            <!-- Existing Images Section -->
-            {% if images %}
-            <div class="mt-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-200">Imágenes cargadas</h2>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {% for image in images %}
-                    <div class="relative group">
+        <!-- Existing Images Section -->
+        {% if images %}
+        <div class="uploaded-images mt-4">
+            <h2 class="h5">Imágenes Cargadas</h2>
+            <div class="row">
+                {% for image in images %}
+                <div class="col-md-4 mb-2">
+                    <div class="card">
                         <img src="{{ url_for('uploaded_file', filename=image) }}" 
                              alt="{{ image }}" 
-                             class="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-75 transition-opacity"
+                             class="card-img-top" 
                              onclick="analyzeExisting('{{ image }}')">
-                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-gray-200 text-xs p-1 rounded-b-lg truncate">
-                            {{ image }}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ image }}</h5>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 
     <script>

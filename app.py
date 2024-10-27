@@ -2,14 +2,14 @@ import os
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # Set backend before importing pyplot
+import matplotlib.pyplot as plt
+import mediapipe as mp
 import cv2
 import base64
-import dlib
+from pyngrok import ngrok
 from io import BytesIO
-import matplotlib.pyplot as plt
-import matplotlib
-
-matplotlib.use('Agg')  # Set backend before importing pyplot
 
 app = Flask(__name__)
 
@@ -27,42 +27,45 @@ def allowed_file(filename):
 
 def analyze_face(image_path):
     try:
-        # Initialize dlib detector and predictor
-        detector = dlib.get_frontal_face_detector()
-        predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+        # Initialize MediaPipe Face Mesh
+        mp_face_mesh = mp.solutions.face_mesh
+        face_mesh = mp_face_mesh.FaceMesh(
+            static_image_mode=True,
+            max_num_faces=1,
+            min_detection_confidence=0.5
+        )
 
         # Read image
         image = cv2.imread(image_path)
         if image is None:
             raise Exception("Could not load image")
 
-        # Convert to grayscale for dlib
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # Convert to RGB for MediaPipe
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        # Detect faces
-        faces = detector(gray_image)
+        # Detect facial landmarks
+        results = face_mesh.process(rgb_image)
 
-        if len(faces) == 0:
+        if not results.multi_face_landmarks:
             raise Exception("No face detected in the image")
 
-        # Select 15 main keypoints (same points as in your original dlib code)
-        key_points_indices = [17, 21, 22, 26, 30, 36, 38, 39, 42, 43, 45, 51, 57, 60, 64]
+        # Select 15 main keypoints
+        key_points = [33, 133, 362, 263, 1, 61, 291, 199,
+                     94, 0, 24, 130, 359, 288, 378]
 
-        height, width = gray_image.shape
-
+        height, width, _ = image.shape
+        
         # Create a new figure for each analysis
         plt.clf()
         fig = plt.figure(figsize=(8, 8))
-        plt.imshow(gray_image, cmap='gray')
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))  # Show image in color
 
-        for face in faces:
-            landmarks = predictor(gray_image, face)
-
-            # Plot facial landmarks
-            for idx in key_points_indices:
-                x = int(landmarks.part(idx).x)
-                y = int(landmarks.part(idx).y)
-                plt.plot(x, y, 'rx')  # Draw red points
+        # Plot facial landmarks
+        for point_idx in key_points:
+            landmark = results.multi_face_landmarks[0].landmark[point_idx]
+            x = int(landmark.x * width)
+            y = int(landmark.y * height)
+            plt.plot(x, y, 'rx')  # Mark points with red crosses
 
         # Save plot to memory
         buf = BytesIO()
@@ -146,6 +149,12 @@ def delete_image():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
+
 # Ejecuta la aplicación Flask
 if __name__ == '__main__':
-    app.run(port=5000)
+    # Iniciar un túnel ngrok en el puerto 5000
+    public_url = ngrok.connect(5004)
+    print(f" * ngrok URL: {public_url}")
+
+    # Ejecuta Flask en el puerto 5000
+    app.run(port=5004)
