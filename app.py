@@ -11,8 +11,12 @@ import cv2
 import base64
 from pyngrok import ngrok
 from io import BytesIO
+import random
 
 app = Flask(__name__)
+
+# Coloca tu token de ngrok aquí
+ngrok.set_auth_token("2no9UNajvQBnJaufy62CQNBJFzA_6cUymoP8rHMB1RDxG7fhq")
 
 # Configure upload folder
 UPLOAD_FOLDER = 'static/uploads'
@@ -52,42 +56,67 @@ def analyze_face(image_path):
             raise Exception("No face detected in the image")
 
         # Select 15 main keypoints
-        key_points = [33, 133, 362, 263, 1, 61, 291, 
-                     94, 0, 24, 130, 359,70,100]
+        key_points = [33, 133, 362, 263, 1, 61, 291, 199,
+                     94, 0, 24, 130, 359, 288, 378]
 
         height, width = gray_image.shape
-        
-        # Create a new figure for each analysis
-        plt.clf()
-        fig = plt.figure(figsize=(8, 8))
-        plt.imshow(gray_image, cmap='gray')
 
-        # Plot facial landmarks
-        for point_idx in key_points:
-            landmark = results.multi_face_landmarks[0].landmark[point_idx]
-            x = int(landmark.x * width)
-            y = int(landmark.y * height)
-            plt.plot(x, y, 'rx')
+        # Function to add keypoints to image
+        def add_keypoints_to_image(image, results, angle=0):
+            plt.clf()
+            fig = plt.figure(figsize=(8, 8))
+            plt.imshow(image, cmap='gray')
 
-        # Save plot to memory
-        buf = BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        buf.seek(0)
-        plt.close(fig)
+            # Plot facial landmarks
+            for point_idx in key_points:
+                landmark = results.multi_face_landmarks[0].landmark[point_idx]
+                x = int(landmark.x * width)
+                y = int(landmark.y * height)
 
-        # Convert to base64
-        image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
-        return image_base64
+                # Rotate keypoints if necessary
+                if angle != 0:
+                    center = (width // 2, height // 2)
+                    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+                    rotated_point = np.dot(rotation_matrix[:, :2], np.array([x, y])) + rotation_matrix[:, 2]
+                    x, y = rotated_point.astype(int)
+
+                plt.plot(x, y, 'rx')
+
+            # Save plot to memory
+            buf = BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight')
+            buf.seek(0)
+            plt.close(fig)
+            return base64.b64encode(buf.getvalue()).decode('utf-8')
+
+        # Original image with keypoints
+        original_image_base64 = add_keypoints_to_image(gray_image, results)
+
+        # Flip image horizontally and add keypoints
+        flipped_image = cv2.flip(gray_image, 1)
+        flipped_image_base64 = add_keypoints_to_image(flipped_image, results)
+
+        # Brighten image and add keypoints
+        bright_image = np.clip(random.uniform(1.5, 2) * gray_image, 0, 255)
+        bright_image_base64 = add_keypoints_to_image(bright_image.astype(np.uint8), results)
+
+        # Rotate image by 180 degrees and add keypoints (adjust keypoints)
+        rotated_image = cv2.rotate(gray_image, cv2.ROTATE_180)
+        rotated_image_base64 = add_keypoints_to_image(rotated_image, results, angle=180)
+
+        return {
+            'original_image': original_image_base64,
+            'flipped_image': flipped_image_base64,
+            'bright_image': bright_image_base64,
+            'rotated_image': rotated_image_base64
+        }
 
     except Exception as e:
         print(f"Error in analyze_face: {str(e)}")
         raise
-    finally:
-        plt.close('all')
 
 @app.route('/')
 def home():
-    # Get list of images in upload folder
     images = []
     for filename in os.listdir(app.config['UPLOAD_FOLDER']):
         if allowed_file(filename):
@@ -97,15 +126,7 @@ def home():
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
-        # Check if we're analyzing an existing file
-        if 'existing_file' in request.form:
-            filename = request.form['existing_file']
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            if not os.path.exists(filepath):
-                return jsonify({'error': f'File not found: {filename}'}), 404
-            
-        # Check if we're uploading a new file
-        elif 'file' in request.files:
+        if 'file' in request.files:
             file = request.files['file']
             if file.filename == '':
                 return jsonify({'error': 'No file selected'}), 400
@@ -116,17 +137,10 @@ def analyze():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-        
-        else:
-            return jsonify({'error': 'No file provided'}), 400
 
-        # Analyze the image
-        result_image = analyze_face(filepath)
-        
-        return jsonify({
-            'success': True,
-            'image': result_image
-        })
+        result_images = analyze_face(filepath)
+
+        return jsonify(result_images)
 
     except Exception as e:
         print(f"Error in /analyze: {str(e)}")
@@ -136,27 +150,8 @@ def analyze():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/delete', methods=['POST'])
-def delete_image():
-    try:
-        filename = request.form['filename']
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return jsonify({'success': True, 'message': 'Imagen eliminada con éxito.'})
-        else:
-            return jsonify({'success': False, 'message': 'Archivo no encontrado.'}), 404
-            
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-
 # Ejecuta la aplicación Flask
 if __name__ == '__main__':
-    # Iniciar un túnel ngrok en el puerto 5000
-    public_url = ngrok.connect(5004)
+    public_url = ngrok.connect(5001)
     print(f" * ngrok URL: {public_url}")
-
-    # Ejecuta Flask en el puerto 5000
-    app.run(port=5004)
+    app.run(port=5001)
