@@ -1,152 +1,150 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> .:ANALISIS FACIAL:.</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <title>Detección de Puntos Faciales</title>
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #343a40; /* Gray background */
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            text-align: center;
         }
-        .card {
-            background-color: #495057; /* Darker card background */
+
+        h1 {
+            color:  #9B6E9F;
+            margin-top: 50px;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #E1C6F2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #E1C6F2;
+        }
+
+        #results {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .image-container {
+            margin: 20px;
+            text-align: center;
+            border-radius: 10px;
+            padding: 15px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .image-container:hover {
+            transform: scale(1.05);
+        }
+
+        .image-container img {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .image-title {
+            font-size: 18px;
+            margin-top: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .alert {
+            color: #ff4747;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        /* Estilo para el mensaje de éxito */
+        .success {
+            color: #4CAF50;
         }
     </style>
 </head>
-
 <body>
-    <div class="container my-5">
-        <h1 class="text-center text-white mb-4">Análisis Facial</h1>
-        
-        <div class="row">
-            <div class="col-md-6">
-                <!-- File Upload Section -->
-                <div class="card p-4 mb-4">
-                    <h2 class="text-center text-gray-200 mb-4">Sube una imagen para ser analizada</h2>
-                    <form id="uploadForm" class="mb-3">
-                        <div class="form-group">
-                            <label for="fileInput" class="text-gray-200">Seleccionar Imagen:</label>
-                            <input type="file" name="file" accept=".jpg,.jpeg,.png" class="form-control-file" id="fileInput" style="display: none;"/>
-                            <button type="button" onclick="document.getElementById('fileInput').click()" class="btn btn-primary btn-block">
-                                SELECCIONAR IMAGEN
-                            </button>
-                        </div>
-                        <button type="submit" class="btn btn-success btn-block">
-                            ANALIZAR IMAGEN
-                        </button>
-                    </form>
-                </div>
+    <h1>Sube una imagen para la detección de puntos faciales</h1>
+    <form action="/analyze" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*" required>
+        <button type="submit">Subir Imagen</button>
+    </form>
 
-                <!-- Loading Indicator -->
-                <div id="loading" class="hidden text-center">
-                    <div class="spinner-border text-info" role="status">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                </div>
-
-                <!-- Error Display -->
-                <div id="error" class="hidden alert alert-danger mt-3"></div>
-
-                <!-- Existing Images Section -->
-                {% if images %}
-                <div class="card p-4">
-                    <h2 class="text-center text-gray-200 mb-4">Imágenes cargadas</h2>
-                    <div class="row">
-                        {% for image in images %}
-                        <div class="col-6 col-md-4 mb-2">
-                            <div class="card">
-                                <img src="{{ url_for('uploaded_file', filename=image) }}" 
-                                     alt="{{ image }}" 
-                                     class="card-img-top" 
-                                     onclick="analyzeExisting('{{ image }}')">
-                                <div class="card-body">
-                                    <h5 class="card-title text-center text-gray-200">{{ image }}</h5>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <div class="col-md-6">
-                <!-- Results Section -->
-                <div id="results" class="hidden card p-4">
-                    <h2 class="text-center text-gray-200 mb-4">Resultados del análisis</h2>
-                    <img id="resultImage" class="img-fluid" src="" alt="Analysis Result">
-                </div>
-            </div>
+    <h2 style="color:  #9B6E9F; margin-top: 30px;">Imágenes procesadas con puntos faciales</h2>
+    <div id="results">
+        <div class="image-container">
+            <img id="original" src="" alt="Imagen original con puntos faciales">
+            <p class="image-title">Imagen Original</p>
+        </div>
+        <div class="image-container">
+            <img id="flipped" src="" alt="Imagen volteada con puntos faciales">
+            <p class="image-title">Imagen Volteada</p>
+        </div>
+        <div class="image-container">
+            <img id="brightened" src="" alt="Imagen iluminada con puntos faciales">
+            <p class="image-title">Imagen Iluminada</p>
+        </div>
+        <div class="image-container">
+            <img id="rotated" src="" alt="Imagen rotada con puntos faciales">
+            <p class="image-title">Imagen Rotada</p>
         </div>
     </div>
 
+    <div id="alert"></div>
+
     <script>
-        // Manejar la subida de nuevas imágenes
-        $('#uploadForm').submit(function (e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            showLoading();
+        const form = document.querySelector('form');
+        form.onsubmit = async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const alertDiv = document.getElementById('alert');
+            alertDiv.innerHTML = ''; // Limpiar alertas previas
 
-            $.ajax({
-                url: '/analyze',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (response) {
-                    hideLoading();
-                    $('#results').removeClass('hidden');
-                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
-                },
-                error: function (xhr) {
-                    hideLoading();
-                    $('#error')
-                        .removeClass('hidden')
-                        .text(xhr.responseJSON?.error || 'An error occurred');
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (result.error) {
+                    alertDiv.innerHTML = `<div class="alert">${result.error}</div>`;
+                } else {
+                    document.getElementById('original').src = 'data:image/png;base64,' + result.original_image;
+                    document.getElementById('flipped').src = 'data:image/png;base64,' + result.flipped_image;
+                    document.getElementById('brightened').src = 'data:image/png;base64,' + result.bright_image;
+                    document.getElementById('rotated').src = 'data:image/png;base64,' + result.rotated_image;
+                    alertDiv.innerHTML = `<div class="success">¡Imágenes procesadas con éxito!</div>`;
                 }
-            });
-        });
-
-        // Manejar el análisis de imágenes existentes
-        function analyzeExisting(filename) {
-            showLoading();
-
-            const formData = new FormData();
-            formData.append('existing_file', filename);
-
-            $.ajax({
-                url: '/analyze',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (response) {
-                    hideLoading();
-                    $('#results').removeClass('hidden');
-                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
-                },
-                error: function (xhr) {
-                    hideLoading();
-                    $('#error')
-                        .removeClass('hidden')
-                        .text(xhr.responseJSON?.error || 'An error occurred');
-                }
-            });
-        }
-
-        // Mostrar/ocultar la animación de carga
-        function showLoading() {
-            $('#loading').removeClass('hidden');
-            $('#results, #error').addClass('hidden');
-        }
-
-        function hideLoading() {
-            $('#loading').addClass('hidden');
-        }
+            } catch (error) {
+                alertDiv.innerHTML = `<div class="alert">Ocurrió un error. Por favor, intenta nuevamente.</div>`;
+            }
+        };
     </script>
 </body>
 </html>
